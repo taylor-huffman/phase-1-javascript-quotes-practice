@@ -60,17 +60,32 @@
     {
       "id": 1,
       "quoteId": 1,
-      "createdAt": 1558524356
+      "createdAt": 1558524356,
+      "likeCount": 3
     },
     {
       "quoteId": 10,
       "id": 2,
-      "createdAt": 1558524358
+      "createdAt": 1558524358,
+      "likeCount": 2
     },
     {
       "quoteId": 11,
       "createdAt": 1643775288065,
-      "id": 3
+      "id": 3,
+      "likeCount": 3
+    },
+    {
+      "quoteId": 2,
+      "createdAt": 1643820212225,
+      "likeCount": 1,
+      "id": 4
+    },
+    {
+      "quoteId": 5,
+      "createdAt": 1643828500769,
+      "likeCount": 1,
+      "id": 5
     }
   ]
 }

@@ -1,18 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     let quoteList = document.getElementById('quote-list')
     let form = document.getElementById('new-quote-form')
+    let sortButton = document.getElementById('sort-button')
 
-    fetch('http://localhost:3000/quotes?_embed=likes')
+    const fetchQuotes = () => {fetch('http://localhost:3000/quotes?_embed=likes')
     .then(res => res.json())
     .then(data => {
         data.forEach(item => {
-            renderQuote(item)
+            createLiElement(item)
         });
     })
+    }
+    fetchQuotes()
 
     const createLiElement = (item) => {
         let li = document.createElement('li')
         li.classList.add('quote-card')
+        li.dataset.authorName = item.author
+        li.dataset.quoteIdNumber = item.id
 
         let blockquote = document.createElement('blockquote')
         blockquote.classList.add('blockquote')
@@ -28,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let br = document.createElement('br')
 
         let span = document.createElement('span')
-        span.textContent = 0
+        span.textContent = showLikeCount(item)
 
         let likeButton = document.createElement('button')
         likeButton.classList.add('btn-success')
@@ -88,8 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
         quoteList.appendChild(li)
     }
 
-    const renderQuote = (item) => {
-        createLiElement(item)
+    const showLikeCount = (item) => {
+        if (item.likes.length === 0) {
+            return 0
+        } else {
+            return item.likes[0].likeCount
+        }
     }
 
     const editQuote = (e) => {
@@ -99,19 +108,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitEdit = (e, item) => {
         e.preventDefault()
-        console.log(e)
         let editQuoteForm = e.target
-        e.target.parentNode.classList.add('hide')
-        e.target.parentNode.parentNode.firstChild.firstChild.textContent = editQuoteForm.quote.value
-        e.target.parentNode.parentNode.firstChild.firstChild.nextSibling.textContent = editQuoteForm.author.value
+
+        fetch(`http://localhost:3000/quotes/${item.id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                quote: editQuoteForm.quote.value,
+                author: editQuoteForm.author.value
+            })
+        })
+        .then(res => res.json())
+        .then(() => {
+            e.target.parentNode.classList.add('hide')
+            e.target.parentNode.parentNode.firstChild.firstChild.textContent = editQuoteForm.quote.value
+            e.target.parentNode.parentNode.firstChild.firstChild.nextSibling.textContent = editQuoteForm.author.value
+        })
     }
 
     const addLike = (e, item) => {
-        addLikeToDB(e, item)
-    }
-
-    const addLikeToDB = (e, item) => {
-        console.log('add like to DB', item)
+        if (item.likes.length === 0) {
         fetch('http://localhost:3000/likes', {
             method: 'POST',
             headers: {
@@ -119,22 +137,45 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify({
                 quoteId: item.id,
-                createdAt: Date.now()
+                createdAt: Date.now(),
+                likeCount: 1,
             })
         })
             .then(res => res.json())
             .then(() => {
-                let currentLikeCount = parseInt(e.target.firstElementChild.textContent)
-                let span = e.target.firstElementChild
-                span.textContent = currentLikeCount += 1
+                let quoteList = document.getElementById('quote-list')
+                quoteList.innerHTML = ''
+                fetchQuotes()
             })
+        } else {
+            fetch(`http://localhost:3000/likes?quoteId=${item.id}`)
+            .then(res => res.json())
+            .then((item) => {
+                patchLike(e, item)
+            })
+        }
+    }
+
+    const patchLike = (e, item) => {
+        let currentLikeCount = parseInt(e.target.firstElementChild.textContent)
+        let span = e.target.firstElementChild
+        span.textContent = currentLikeCount += 1
+        fetch(`http://localhost:3000/likes/${item[0].id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                likeCount: currentLikeCount
+            })
+        })
+        .then(res => res.json())
+        .then(() => {
+            span.textContent = currentLikeCount
+        })
     }
 
     const removeQuote = (e, item) => {
-        removeQuoteFromDb(e, item)
-    }
-
-    const removeQuoteFromDb = (e, item) => {
         fetch(`http://localhost:3000/quotes/${item.id}`, {
             method: 'DELETE',
             headers: {
@@ -166,8 +207,51 @@ document.addEventListener('DOMContentLoaded', () => {
             body:JSON.stringify(item)
         })
         .then(res => res.json())
-        .then(quote => createLiElement(quote))
+        .then(() => {
+            let quoteList = document.getElementById('quote-list')
+            quoteList.innerHTML = ''
+            fetchQuotes()
+        })
     }
 
+    let quoteArray = []
+
+    setTimeout(function() {
+        quoteArray = [...document.querySelectorAll('#quote-list li')]
+}, 700)
+
+    const sortFunction = () => {
+        let quoteList = document.getElementById('quote-list')
+        let alphebeticalArray = quoteArray.slice().sort(function(a, b) {
+            let nameA = a.dataset.authorName
+            let nameB = b.dataset.authorName
+            if (nameA < nameB) {
+                return -1;
+            }
+            if (nameA > nameB) {
+                return 1;
+            }
+            return 0;
+        })
+        
+        
+        if (sortButton.textContent === 'Turn Sort On') {
+            sortButton.textContent = 'Turn Sort Off'
+            quoteList.innerHTML = ''
+            alphebeticalArray.forEach(quote => {
+                quoteList.appendChild(quote)
+        })
+    } else {
+            sortButton.textContent = 'Turn Sort On'
+            quoteList.innerHTML = ''
+            quoteArray.forEach(quote => {
+                quoteList.appendChild(quote)
+        })
+    }
+}
+    
+
+
+    sortButton.addEventListener('click', sortFunction)
     form.addEventListener('submit', createNewQuote)
 })
