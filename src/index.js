@@ -99,7 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitEdit = (e, item) => {
         e.preventDefault()
-        let editQuoteForm = document.getElementById('edit-quote-form')
+        console.log(e)
+        let editQuoteForm = e.target
         e.target.parentNode.classList.add('hide')
         e.target.parentNode.parentNode.firstChild.firstChild.textContent = editQuoteForm.quote.value
         e.target.parentNode.parentNode.firstChild.firstChild.nextSibling.textContent = editQuoteForm.author.value
